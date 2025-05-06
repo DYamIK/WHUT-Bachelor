@@ -1,0 +1,20 @@
+\section{具身智能的物理对抗攻击算法}
+\subsection{算法概述}
+近期在机器人学领域，视觉-语言-动作（VLA）模型作为一种变革性方法崭露头角，通过将视觉与语言输入整合至端到端学习框架，使机器人能够执行复杂任务。尽管VLA模型展现出强大能力，却也引入了新的攻击面，使其易受对抗性攻击影响。然而，由于从数字世界过渡到物理世界的挑战，当前的攻击方法往往缺乏实用性，而现有的用于目标检测的物理攻击未能实现多视图有效性和自然性。
+
+为了解决这个问题，本文提出了一种优化物体纹理信息的对抗攻击方法，通过将具有可学习纹理3D物体渲染生成的对抗补丁附加到物体对象上
+\subsection{问题定义}
+
+给定图像集合$\mathcal{I} $、指令集合$\mathcal{L} $、3D物体$o$、物体纹理特征$t$、相机视角集合$\mathcal{V}$ 和VLA模型$F: x\rightarrow  y$ ，我们的目标是为场景中的目标物体生成透明对抗纹理$t_{adv}$，以使这些物体导致VLA模型执行失败，并采取特定的被攻击行动。该问题可表述为寻找使VLA模型采取特定动作损失最小化的最优纹理。
+
+\begin{equation}
+    \begin{aligned}
+    \min_{t_{adv}} &\quad \left\{\mathbb{E}_{v \thicksim  \mathcal{V} } \mathfrak{L} _{adv}\left[ F (\mathfrak{R}  (o, t_{adv}; v )+\mathcal{I}, \mathcal{L} ), y \right ] \right\},\\
+    \mathrm{s.t.} &\quad t_{adv} \in [0,1]^m,
+    \end{aligned}
+\end{equation}
+其中，$\mathfrak{L}$ 表示对抗性损失，$\hat {x}=\mathfrak{R} (o, t_{adv})$表示渲染得到的图像，$t_{adv}$表示生成的对抗性纹理，$y$ 表示真值动作标签，$\hat{x}+\mathcal{I}$ 表示应用了对抗纹理渲染图象的输入信息，$[0,1]$ 表示有效的像素值，$m$ 表示视觉输入信息的维数。
+
+\subsection{针对VLA模型的物理对抗攻击框架}
+
+\subsubsection{}
