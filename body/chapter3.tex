@@ -7,14 +7,105 @@
 
 给定图像集合$\mathcal{I} $、指令集合$\mathcal{L} $、3D物体$o$、物体纹理特征$t$、相机视角集合$\mathcal{V}$ 和VLA模型$F: x\rightarrow  y$ ，我们的目标是为场景中的目标物体生成透明对抗纹理$t_{adv}$，以使这些物体导致VLA模型执行失败，并采取特定的被攻击行动。该问题可表述为寻找使VLA模型采取特定动作损失最小化的最优纹理。
 
+具体来说，对于给定的VLA模型$F$，其输入$x$包含视觉信息$I \in \mathcal{I}$和语言指令$L \in \mathcal{L}$，输出为动作序列$y$。我们的目标是生成一个对抗纹理$t_{adv}$，使得当将其应用到3D物体$o$上时，从任意视角$v \in \mathcal{V}$渲染得到的图像$\hat{I} = \mathfrak{R}(o, t_{adv}; v)$与原始图像$I$组合后，能够误导VLA模型$F$产生错误的动作预测。
+
+该问题可形式化为以下优化问题：
+
 \begin{equation}
     \begin{aligned}
     \min_{t_{adv}} &\quad \left\{\mathbb{E}_{v \thicksim  \mathcal{V} } \mathfrak{L} _{adv}\left[ F (\mathfrak{R}  (o, t_{adv}; v )+\mathcal{I}, \mathcal{L} ), y \right ] \right\},\\
     \mathrm{s.t.} &\quad t_{adv} \in [0,1]^m,
     \end{aligned}
 \end{equation}
-其中，$\mathfrak{L}$ 表示对抗性损失，$\hat {x}=\mathfrak{R} (o, t_{adv})$表示渲染得到的图像，$t_{adv}$表示生成的对抗性纹理，$y$ 表示真值动作标签，$\hat{x}+\mathcal{I}$ 表示应用了对抗纹理渲染图象的输入信息，$[0,1]$ 表示有效的像素值，$m$ 表示视觉输入信息的维数。
+其中，$\mathfrak{L}$ 表示对抗性损失，$\hat {I}=\mathfrak{R} (o, t_{adv})$表示渲染得到的图像，$t_{adv}$表示生成的待优化对抗纹理，其值域被约束在$[0,1]^m$范围内，$y$ 表示真值动作标签，$\hat{x}+\mathcal{I}$ 表示应用了对抗纹理渲染图象的输入信息，$[0,1]$ 表示有效的像素值范围，$m$ 表示纹理特征的维度，$\mathcal{V}$ 表示可能的相机视角集合，$y$ 表示期望模型输出的目标动作序列。
+
+该优化问题的目标是找到一个最优的对抗纹理$t_{adv}$，使得从任意视角渲染得到的图像都能有效地误导VLA模型，同时保持纹理的自然性和物理可实现性。
+
+\subsection{相机视角集合}
+
+从原始数据中给定不同时间状态下的同一物体的位姿集合$\mathcal{T}$、物体的四元数集合$\mathcal{Q}$、相机内参矩阵$A$和相机外参矩阵集合$\mathcal{E}$，我们可以构建相机视角集合$\mathcal{V}$。具体而言，对于每个时间步$i$，我们有以下定义：
+
+\begin{itemize}
+    \item 相机内参矩阵$A \in \mathbb{R}^{3 \times 3}$，包含相机的焦距、主点等参数;
+    \item 相机外参矩阵集合$\mathcal{E} = \{E_1, E_2, ..., E_n\}$，其中每个外参矩阵$E_i \in \mathbb{R}^{4 \times 4}$表示相机在世界坐标系中齐次坐标变换矩阵，表示相机在世界坐标系中的位置和旋转状态；
+    \item 物体位姿集合$\mathcal{T} = \{T_1, T_2, ..., T_n\}$，其中每个位姿$T_i \in \mathbb{R}^{4 \times 4}$表示物体在世界坐标系中的位置；
+    \item 物体四元数集合$\mathcal{Q} = \{q_1, q_2, ..., q_n\}$，其中每个四元数$q_i \in \mathbb{R}^{1 \times 4}$表示物体的旋转状态和方向。
+\end{itemize}
+ 
+基于这些参数，我们可以构建相机视角集合$\mathcal{V}$：
+
+\begin{equation}
+    \mathcal{V} = \{v_i = (A, E_i, T_i, q_i) | i = 1,2,\dots,n\}.
+\end{equation}
+% 其中，每个视角$v \in \mathcal{V}$包含以下信息：
+% \begin{itemize}
+%     \item 相机内参矩阵$A$：定义相机的内部参数，包括焦距$(f_x, f_y)$和主点$(c_x, c_y)$
+%     \item 相机外参矩阵$E_i$：定义相机在世界坐标系中的位置和方向
+%     \item 物体位姿$T_i$：定义物体在世界坐标系中的位置和方向
+%     \item 物体四元数$q_i$：定义物体的旋转状态
+% \end{itemize}
+
+% 对于每个视角$v$，我们可以通过以下步骤计算投影矩阵$P_v$：
+
+% \begin{equation}
+%     P_v = A \cdot E_i \cdot T_i^{-1}
+% \end{equation}
+
+% 这个投影矩阵将用于3D物体渲染过程，将3D点投影到2D图像平面上。通过这种方式，我们确保了在不同视角下都能正确渲染物体的外观，这对于生成具有视角不变性的对抗纹理至关重要。
 
 \subsection{针对VLA模型的物理对抗攻击框架}
 
-\subsubsection{}
+本文提出的物理对抗攻击框架主要包含三个核心组件：3D物体渲染模块、对抗纹理优化模块和物理约束模块。该框架的整体架构如图\ref{fig:framework}所示。
+
+\subsubsection{3D物体渲染}
+
+为解决3D物体的纹理特征在多视角下的都具有攻击的有效性，本文采用基于物理的可微分渲染器对物体纹理进行优化。首先，从原始数据集获取物体的位姿、物体的四元数和相机内外参数，随后通过3D物体渲染模块将带有对抗纹理的3D物体从不同视角渲染成2D图像，再利用多视角梯度，通过基于梯度的方法优化贴片纹理。具体来说，对于给定的3D物体$o$和对抗纹理$t_{adv}$，我们使用可微分的渲染器$\mathfrak{R}$从视角$v$生成图像$\hat{I}$： 
+\begin{align}
+    I &= \mathfrak{R}(o, t; v),\\
+    \hat{I} &= \mathfrak{R}(o, t_{adv}; v),
+\end{align}
+其中，$I$和$\hat{I}$分别表示未使用对抗纹理和使用对抗纹理后的图像。
+
+\subsubsection{对抗纹理优化模块}
+对抗纹理优化模块是框架的核心，负责生成最优的对抗纹理。该模块采用基于梯度的优化方法，通过最小化对抗损失函数来更新纹理参数：
+\begin{equation}
+    t_{adv}^{t+1} = t_{adv}^t - \alpha \nabla_{t_{adv}} \mathfrak{L}_{adv}
+\end{equation}
+
+其中，$\alpha$为学习率，$\nabla_{t_{adv}} \mathfrak{L}_{adv}$表示对抗损失对纹理参数的梯度。为了确保生成的纹理具有自然性，我们在优化过程中引入了感知损失和风格损失：
+\begin{equation}
+    \mathfrak{L}_{total} = \mathfrak{L}_{adv} + \lambda_1\mathfrak{L}_{perceptual} + \lambda_2\mathfrak{L}_{style}
+\end{equation}
+
+\subsubsection{物理约束模块}
+物理约束模块确保生成的对抗纹理在物理世界中是可实现的。该模块主要考虑以下约束：
+
+\begin{itemize}
+    \item \textbf{视角不变性}：确保从不同视角观察时，对抗纹理都能有效误导VLA模型
+    \item \textbf{光照鲁棒性}：保证在不同光照条件下，对抗纹理的效果保持稳定
+    \item \textbf{打印可行性}：确保生成的纹理可以通过实际打印设备制作
+    \item \textbf{材质兼容性}：考虑不同材质表面的纹理附着特性
+\end{itemize}
+
+这些约束通过以下方式实现：
+
+\begin{equation}
+    \begin{aligned}
+    \min_{t_{adv}} &\quad \mathfrak{L}_{total}\\
+    \mathrm{s.t.} &\quad \|t_{adv} - t_{adv}^{print}\|_2 \leq \epsilon\\
+    &\quad \|t_{adv}^{v_1} - t_{adv}^{v_2}\|_2 \leq \delta, \forall v_1,v_2 \in \mathcal{V}
+    \end{aligned}
+\end{equation}
+
+其中，$t_{adv}^{print}$表示可打印的纹理版本，$\epsilon$和$\delta$为约束阈值。
+
+\subsubsection{实现细节}
+在实际实现中，我们采用以下策略来提升框架的性能：
+
+\begin{enumerate}
+    \item 使用预训练的VLA模型作为攻击目标，确保攻击的通用性
+    \item 采用多尺度优化策略，从粗到细逐步优化纹理细节
+    \item 实现并行渲染和优化，提高计算效率
+    \item 引入自适应学习率调整机制，提高优化稳定性
+\end{enumerate}
+
